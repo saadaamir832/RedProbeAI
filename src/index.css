@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #05070a;
+  color: #d7e0ee;
+  font-family: 'Outfit', system-ui, sans-serif;
+  font-feature-settings: 'cv01', 'ss01';
+  overflow-x: hidden;
+}
+
+/* ---- SOC terminal backdrop ---- */
+.soc-grid {
+  background-image:
+    linear-gradient(rgba(0, 229, 160, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 160, 0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+  background-position: -1px -1px;
+}
+
+.soc-vignette {
+  background:
+    radial-gradient(1100px 520px at 78% -8%, rgba(0, 194, 255, 0.08), transparent 60%),
+    radial-gradient(900px 480px at 8% 6%, rgba(0, 229, 160, 0.08), transparent 62%),
+    radial-gradient(1400px 900px at 50% 120%, rgba(124, 58, 237, 0.04), transparent 70%);
+}
+
+/* ---- scrollbar ---- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a212e;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #273141;
+}
+
+/* ---- no-scrollbar utility ---- */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ---- utilities ---- */
+@layer components {
+  .panel {
+    @apply rounded-xl border border-ink-700/70 bg-ink-850/80 backdrop-blur-sm;
+  }
+  .panel-hover {
+    @apply transition-all duration-200 hover:border-ink-600/80 hover:shadow-panel;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium uppercase tracking-wider;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-cyber-500/60;
+  }
+  .btn-primary {
+    @apply btn bg-cyber-500 text-ink-950 hover:bg-cyber-400 active:bg-cyber-600 shadow-cyber hover:shadow-cyber hover:scale-[1.02] active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply btn border border-ink-700 bg-ink-800/60 text-slate-200 hover:border-ink-600 hover:bg-ink-750 transition-all;
+  }
+  .btn-danger {
+    @apply btn bg-red-500/15 text-red-300 border border-red-500/30 hover:bg-red-500/25;
+  }
+  .input {
+    @apply w-full rounded-lg border border-ink-700 bg-ink-900/80 px-3.5 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 outline-none transition-all focus:border-cyber-500/60 focus:ring-2 focus:ring-cyber-500/15;
+  }
+  .input:focus {
+    box-shadow: 0 0 0 3px rgba(0, 229, 160, 0.08);
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-medium uppercase tracking-wider text-slate-400;
+  }
+  .mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  .stat-num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* severity colors */
+.sev-critical { @apply text-red-400 bg-red-500/10 border-red-500/30; }
+.sev-high     { @apply text-orange-400 bg-orange-500/10 border-orange-500/30; }
+.sev-medium   { @apply text-amber-400 bg-amber-500/10 border-amber-500/30; }
+.sev-low      { @apply text-yellow-400 bg-yellow-500/10 border-yellow-500/30; }
+.sev-info     { @apply text-sky-400 bg-sky-500/10 border-sky-500/30; }
+
+/* glow text */
+.glow-cyber {
+  text-shadow: 0 0 12px rgba(0, 229, 160, 0.4);
+}
+
+/* card entrance with stagger */
+.stagger-in {
+  animation: fadeUp 0.4s ease-out both;
+}
+
+@media print {
+  body { background: #fff; color: #000; }
+  .soc-grid, .soc-vignette, aside, header, .fixed { display: none !important; }
+  main { overflow: visible !important; padding: 0 !important; }
+  .panel { border-color: #ccc !important; background: #fff !important; box-shadow: none !important; }
+}
+
+/* shimmer skeleton */
+.shimmer {
+  background: linear-gradient(90deg, #0f141c 25%, #1a212e 50%, #0f141c 75%);
+  background-size: 200% 100%;
+  @apply animate-shimmer;
+}
