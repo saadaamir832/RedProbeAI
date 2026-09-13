@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { History, Trash2, Eye, AlertTriangle, Clock } from 'lucide-react';
+import { History, Eye, Clock } from 'lucide-react';
 import type { TestRun } from '@/lib/types';
 import { fetchRuns } from '@/lib/db';
 import { Card, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { SeverityBar } from '@/components/charts';
-import { SeverityBadge, SeverityDot } from '@/components/SeverityBadge';
+import { SeverityBadge } from '@/components/SeverityBadge';
 import type { ViewId } from '@/components/Sidebar';
 
 export function HistoryView({ onNavigate, onViewRun }: { onNavigate: (v: ViewId) => void; onViewRun: (run: TestRun) => void }) {

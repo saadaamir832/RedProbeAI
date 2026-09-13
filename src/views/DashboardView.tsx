@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Activity, Cpu, FileWarning, ShieldCheck, AlertOctagon, TrendingUp, Terminal, Radar } from 'lucide-react';
 import type { Finding, Severity, TestRun } from '@/lib/types';
 import { SEVERITY_META, OWASP_CATEGORIES, CATEGORY_META } from '@/lib/owasp';
-import { fetchAllFindings, fetchModels, fetchRuns, fetchRunStats } from '@/lib/db';
+import { fetchAllFindings, fetchRuns, fetchRunStats } from '@/lib/db';
 import { Card, EmptyState, PageHeader, StatCard } from '@/components/ui';
 import { BarChart, DonutChart, SeverityBar, Sparkline } from '@/components/charts';
 import { SeverityBadge, SeverityDot } from '@/components/SeverityBadge';

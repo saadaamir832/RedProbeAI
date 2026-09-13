@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { FileText, Download, AlertTriangle, CheckCircle2, Printer } from 'lucide-react';
+import { FileText, AlertTriangle, CheckCircle2, Printer } from 'lucide-react';
 import type { Finding, TestRun } from '@/lib/types';
 import { CATEGORY_META, OWASP_CATEGORIES, SEVERITY_META } from '@/lib/owasp';
 import { fetchFindingsByRun, fetchRun, fetchRuns } from '@/lib/db';
@@ -20,16 +20,15 @@ export function ReportView({ presetRunId }: { presetRunId?: string }) {
       try {
         const r = await fetchRuns();
         setRuns(r);
-        if (presetRunId) setRunId(presetRunId);
-        else if (r.length > 0) setRunId(r[0].id!);
+        if (presetRunId) {
+          setRunId(presetRunId);
+        } else if (r.length > 0) {
+          setRunId(r[0].id!);
+        }
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
-
-  useEffect(() => {
-    if (presetRunId) setRunId(presetRunId);
   }, [presetRunId]);
 
   useEffect(() => {

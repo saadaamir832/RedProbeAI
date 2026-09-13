@@ -1,4 +1,4 @@
-import type { ComponentType, SVGProps } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import { ShieldCheck, ShieldAlert, FileWarning, Activity, Cpu, FlaskConical, FileText, GitCompareArrows, History } from 'lucide-react';
 
 export type ViewId =
@@ -11,12 +11,10 @@ export type ViewId =
   | 'report'
   | 'comparison';
 
-type IconComponent = ComponentType<SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number; className?: string }>;
-
 interface NavItem {
   id: ViewId;
   label: string;
-  icon: IconComponent;
+  icon: LucideIcon;
   group: 'Monitor' | 'Test' | 'Analyze';
 }
 

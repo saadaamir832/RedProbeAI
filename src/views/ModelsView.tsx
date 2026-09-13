@@ -16,6 +16,7 @@ const EMPTY: ModelConfig = {
 };
 
 export function ModelsView({ onNavigate }: { onNavigate: (v: 'runner' | 'models') => void }) {
+  void onNavigate;
   const [models, setModels] = useState<ModelConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<ModelConfig | null>(null);

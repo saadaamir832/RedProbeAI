@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { GitCompareArrows, Plus, X, Cpu } from 'lucide-react';
+import { GitCompareArrows, X, Cpu } from 'lucide-react';
 import type { TestRun } from '@/lib/types';
 import { fetchRuns } from '@/lib/db';
-import { CATEGORY_META, SEVERITY_META } from '@/lib/owasp';
+import { CATEGORY_META } from '@/lib/owasp';
 import type { Severity } from '@/lib/types';
 import { Card, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { SeverityBadge, SeverityDot } from '@/components/SeverityBadge';
