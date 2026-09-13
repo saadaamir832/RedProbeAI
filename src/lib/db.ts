@@ -1,14 +1,78 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Finding, ModelConfig, TestRun } from './types';
 
-const url = import.meta.env.VITE_SUPABASE_URL as string;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const hasSupabaseConfig = Boolean(url && anonKey && url.trim() && anonKey.trim());
 
-export const supabase = createClient(url, anonKey, {
-  auth: { persistSession: false },
-});
+export const supabase = hasSupabaseConfig
+  ? createClient(url, anonKey, {
+      auth: { persistSession: false },
+    })
+  : null;
+
+const STORAGE_KEYS = {
+  models: 'redprobeai.models',
+  runs: 'redprobeai.runs',
+  findings: 'redprobeai.findings',
+} as const;
+
+function makeId(prefix: string): string {
+  const cryptoApi = globalThis.crypto;
+  if (cryptoApi && 'randomUUID' in cryptoApi && typeof cryptoApi.randomUUID === 'function') {
+    return cryptoApi.randomUUID();
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function readStore<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStore<T>(key: string, value: T): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore storage quota errors and continue with in-memory fallback.
+  }
+}
+
+function getLocalModels(): ModelConfig[] {
+  return readStore<ModelConfig[]>(STORAGE_KEYS.models, []);
+}
+
+function saveLocalModels(models: ModelConfig[]): void {
+  writeStore(STORAGE_KEYS.models, models);
+}
+
+function getLocalRuns(): TestRun[] {
+  return readStore<TestRun[]>(STORAGE_KEYS.runs, []);
+}
+
+function saveLocalRuns(runs: TestRun[]): void {
+  writeStore(STORAGE_KEYS.runs, runs);
+}
+
+function getLocalFindings(): Finding[] {
+  return readStore<Finding[]>(STORAGE_KEYS.findings, []);
+}
+
+function saveLocalFindings(findings: Finding[]): void {
+  writeStore(STORAGE_KEYS.findings, findings);
+}
 
 export async function fetchModels(): Promise<ModelConfig[]> {
+  if (!supabase) {
+    return [...getLocalModels()].sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
+  }
+
   const { data, error } = await supabase
     .from('models')
     .select('*')
@@ -18,6 +82,24 @@ export async function fetchModels(): Promise<ModelConfig[]> {
 }
 
 export async function saveModel(model: ModelConfig): Promise<ModelConfig> {
+  if (!supabase) {
+    const models = getLocalModels();
+    const now = new Date().toISOString();
+    const record: ModelConfig = {
+      ...model,
+      id: model.id ?? makeId('model'),
+      created_at: model.created_at ?? now,
+      updated_at: now,
+    };
+
+    const nextModels = model.id
+      ? models.map((m) => (m.id === model.id ? { ...m, ...record } : m))
+      : [record, ...models];
+
+    saveLocalModels(nextModels);
+    return record;
+  }
+
   const row = {
     name: model.name,
     provider: model.provider,
@@ -40,11 +122,27 @@ export async function saveModel(model: ModelConfig): Promise<ModelConfig> {
 }
 
 export async function deleteModel(id: string): Promise<void> {
+  if (!supabase) {
+    const models = getLocalModels().filter((m) => m.id !== id);
+    saveLocalModels(models);
+    const runs = getLocalRuns().map((run) => ({ ...run, model_id: run.model_id === id ? undefined : run.model_id }));
+    saveLocalRuns(runs);
+    const findings = getLocalFindings().map((finding) => ({ ...finding, model_id: finding.model_id === id ? undefined : finding.model_id }));
+    saveLocalFindings(findings);
+    return;
+  }
+
   const { error } = await supabase.from('models').delete().eq('id', id);
   if (error) throw error;
 }
 
 export async function fetchRuns(): Promise<TestRun[]> {
+  if (!supabase) {
+    return [...getLocalRuns()].sort(
+      (a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime(),
+    );
+  }
+
   const { data, error } = await supabase
     .from('test_runs')
     .select('*, models(name)')
@@ -72,6 +170,13 @@ export async function fetchRuns(): Promise<TestRun[]> {
 }
 
 export async function fetchRun(id: string): Promise<TestRun | null> {
+  if (!supabase) {
+    const run = getLocalRuns().find((item) => item.id === id) ?? null;
+    if (!run) return null;
+    const model = getLocalModels().find((m) => m.id === run.model_id);
+    return { ...run, model_name: model?.name ?? 'Unknown' };
+  }
+
   const { data, error } = await supabase
     .from('test_runs')
     .select('*, models(name)')
@@ -101,6 +206,31 @@ export async function fetchRun(id: string): Promise<TestRun | null> {
 }
 
 export async function saveRun(run: TestRun, findings: Finding[]): Promise<TestRun> {
+  if (!supabase) {
+    const runs = getLocalRuns();
+    const now = new Date().toISOString();
+    const nextRun: TestRun = {
+      ...run,
+      id: run.id ?? makeId('run'),
+      created_at: run.created_at ?? now,
+    };
+
+    const nextRuns = run.id ? runs.map((item) => (item.id === run.id ? nextRun : item)) : [nextRun, ...runs];
+    saveLocalRuns(nextRuns);
+
+    const storedFindings = getLocalFindings();
+    const nextFindings = findings.map((finding) => ({
+      ...finding,
+      id: finding.id ?? makeId('finding'),
+      run_id: finding.run_id ?? nextRun.id,
+      model_id: finding.model_id ?? run.model_id,
+      created_at: finding.created_at ?? now,
+    }));
+    saveLocalFindings([...storedFindings.filter((f) => f.run_id !== nextRun.id), ...nextFindings]);
+
+    return nextRun;
+  }
+
   const row = {
     model_id: run.model_id ?? null,
     name: run.name,
@@ -145,6 +275,14 @@ export async function saveRun(run: TestRun, findings: Finding[]): Promise<TestRu
 }
 
 export async function fetchFindingsByRun(runId: string): Promise<Finding[]> {
+  if (!supabase) {
+    return getLocalFindings().filter((finding) => finding.run_id === runId).sort((a, b) => {
+      const aTime = new Date(a.created_at ?? 0).getTime();
+      const bTime = new Date(b.created_at ?? 0).getTime();
+      return aTime - bTime;
+    });
+  }
+
   const { data, error } = await supabase
     .from('findings')
     .select('*')
@@ -155,6 +293,18 @@ export async function fetchFindingsByRun(runId: string): Promise<Finding[]> {
 }
 
 export async function fetchAllFindings(): Promise<(Finding & { model_name?: string })[]> {
+  if (!supabase) {
+    const models = getLocalModels();
+    return getLocalFindings()
+      .slice()
+      .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
+      .slice(0, 500)
+      .map((finding) => ({
+        ...finding,
+        model_name: models.find((model) => model.id === finding.model_id)?.name ?? 'Unknown',
+      }));
+  }
+
   const { data, error } = await supabase
     .from('findings')
     .select('*, models(name)')
@@ -168,11 +318,28 @@ export async function fetchAllFindings(): Promise<(Finding & { model_name?: stri
 }
 
 export async function updateFindingStatus(id: string, status: Finding['status']): Promise<void> {
+  if (!supabase) {
+    const findings = getLocalFindings().map((finding) => (finding.id === id ? { ...finding, status } : finding));
+    saveLocalFindings(findings);
+    return;
+  }
+
   const { error } = await supabase.from('findings').update({ status }).eq('id', id);
   if (error) throw error;
 }
 
 export async function fetchRunStats(): Promise<{ totalRuns: number; totalFindings: number; totalModels: number }> {
+  if (!supabase) {
+    const runs = getLocalRuns();
+    const findings = getLocalFindings();
+    const models = getLocalModels();
+    return {
+      totalRuns: runs.length,
+      totalFindings: findings.length,
+      totalModels: models.length,
+    };
+  }
+
   const [runs, findings, models] = await Promise.all([
     supabase.from('test_runs').select('id', { count: 'exact', head: true }),
     supabase.from('findings').select('id', { count: 'exact', head: true }),
@@ -202,6 +369,19 @@ function rowToModel(r: Record<string, unknown>): ModelConfig {
 }
 
 export async function seedDefaultMockModel(): Promise<ModelConfig | null> {
+  if (!supabase) {
+    const models = getLocalModels();
+    if (models.some((model) => model.isMock)) return null;
+    return saveModel({
+      name: 'SentinelQA Mock',
+      provider: 'mock',
+      isMock: true,
+      systemPrompt: '',
+      temperature: 0.7,
+      status: 'active',
+    });
+  }
+
   const { data } = await supabase.from('models').select('id').limit(1);
   if (data && data.length > 0) return null;
   return saveModel({

@@ -103,10 +103,15 @@ async function queryModel(model: ModelConfig, prompt: string, signal?: AbortSign
     throw new Error('No endpoint configured for this model. Edit the model to add an endpoint URL.');
   }
 
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Live model testing is unavailable because Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY for GitHub Pages deployment.');
+  }
+
   // For real models, route through the Supabase edge function proxy to
   // avoid browser CORS restrictions. The proxy forwards to the target API.
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
   const proxyUrl = `${supabaseUrl}/functions/v1/ai-proxy`;
 
   if (!apiKey || !apiKey.trim()) {
